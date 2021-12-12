@@ -1,5 +1,6 @@
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
+import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -8,22 +9,26 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemAvatar from "@mui/material/ListItemAvatar";
 import ListItemText from "@mui/material/ListItemText";
+import Snackbar from "@mui/material/Snackbar";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import { ethers } from "ethers";
 import React, { useEffect, useState } from "react";
 import "./App.css";
-import wavePortalArtifact from "./artifacts/WavePortal.json";
+import wavePortalArtifact from "./artifacts-json/WavePortal.json";
 
 export default function App() {
-  const contractAddress = "0x794f1410381dCd19CA060EfFE21b2A61D485898D";
+  const contractAddress = "0x699F31453abf3443c321FD88a32a9349d23C3d44";
   const { ethereum } = window;
   const [currentAccount, setCurrentAccount] = useState("");
+  const [totalWaves, setTotalWaves] = useState(null);
+  const [allWaves, setAllWaves] = useState([]);
   const [message, setMessage] = useState("");
   const [disabledWaving, setDisabledWaving] = useState(false);
   const [miningWave, setMiningWave] = useState(false);
-  const [totalWaves, setTotalWaves] = useState(null);
-  const [allWaves, setAllWaves] = useState([]);
+  const [prizeSnackbarOpen, setPrizeSnackbarOpen] = useState(false);
+  const [prizeEarned, setPrizeEarned] = useState(null);
+  const [errorSnackbarOpen, setErrorSnackbarOpen] = useState(false);
 
   const theme = createTheme({
     palette: {
@@ -45,6 +50,7 @@ export default function App() {
       if (accounts.length !== 0) {
         const account = accounts[0];
         console.log("Found an authorized account:", account);
+        // TODO: Check if Rinkeby network is selected
         setCurrentAccount(account);
         getAllWaves();
         getTotalWaves();
@@ -122,7 +128,7 @@ export default function App() {
         const wavePortalContract = new ethers.Contract(contractAddress, wavePortalArtifact.abi, signer);
 
         setDisabledWaving(true);
-        const waveTxn = await wavePortalContract.wave(message);
+        const waveTxn = await wavePortalContract.wave(message, { gasLimit: 300000 });
         console.log("Mining...", waveTxn.hash);
         setMiningWave(true);
 
@@ -133,6 +139,7 @@ export default function App() {
 
         setMessage("");
 
+        // TODO: Refactor with events
         getAllWaves();
         getTotalWaves();
       } else {
@@ -140,22 +147,89 @@ export default function App() {
       }
     } catch (error) {
       console.log(error);
+      setErrorSnackbarOpen(true);
       setMiningWave(false);
       setDisabledWaving(false);
     }
   };
 
+  const onNewWave = (from, timestamp, message) => {
+    setAllWaves((prevState) => [
+      ...prevState,
+      {
+        address: from,
+        timestamp: new Date(timestamp * 1000),
+        message: message,
+      },
+    ]);
+    setTotalWaves((prevState) => prevState + 1);
+  };
+
+  const onPrizeEarned = (winner, __, value) => {
+    if (winner !== currentAccount) {
+      return;
+    }
+    setPrizeEarned(value.toNumber());
+    setPrizeSnackbarOpen(true);
+  };
+
+  useEffect(() => {
+    let wavePortalContract;
+
+    if (ethereum) {
+      const provider = new ethers.providers.Web3Provider(ethereum);
+      const signer = provider.getSigner();
+
+      wavePortalContract = new ethers.Contract(contractAddress, wavePortalArtifact.abi, signer);
+      wavePortalContract.on("NewWave", onNewWave);
+      wavePortalContract.on("PrizeEarned", onPrizeEarned);
+    }
+
+    return () => {
+      if (wavePortalContract) {
+        wavePortalContract.off("NewWave", onNewWave);
+        wavePortalContract.off("PrizeEarned", onPrizeEarned);
+      }
+    };
+  }, []);
+
   const handleMessageChange = (event) => {
     setMessage(event.target.value);
+  };
+
+  const handlePrizeSnackbarClose = (_, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setPrizeSnackbarOpen(false);
+  };
+
+  const handleErrorSnackbarClose = (_, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setErrorSnackbarOpen(false);
   };
 
   useEffect(() => {
     checkIfWalletIsConnected();
   }, []);
 
+  // TODO: Add buildspace clarification
+  // TODO: Mobile view
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <Snackbar open={prizeSnackbarOpen} autoHideDuration={6000} onClose={handlePrizeSnackbarClose}>
+        <Alert onClose={handlePrizeSnackbarClose} severity="success" sx={{ width: "100%" }}>
+          Congratulations! You have won {prizeEarned} ETH! Check your wallet.
+        </Alert>
+      </Snackbar>
+      <Snackbar open={errorSnackbarOpen} autoHideDuration={6000} onClose={handleErrorSnackbarClose}>
+        <Alert onClose={handleErrorSnackbarClose} severity="error" sx={{ width: "100%" }}>
+          An error occurred. If you recently send a wave, please wait a few minutes and try again.
+        </Alert>
+      </Snackbar>
       <div className="App">
         <header className="App-header">
           <Box sx={{ p: 2 }}>
@@ -178,36 +252,46 @@ export default function App() {
                 </div>
               </Box>
 
-              <TextField
-                label="Send me a message!"
-                variant="outlined"
-                disabled={disabledWaving || miningWave}
-                value={message}
-                onChange={handleMessageChange}
-                InputProps={{
-                  inputProps: {
-                    style: { justifyContent: "center", width: "100%" },
-                  },
-                }}
-              />
-
-              <Grid container justifyContent="center">
-                <Box sx={{ p: 2 }}>
-                  <Button variant="contained" onClick={wave} disabled={disabledWaving || miningWave}>
-                    Wave at Me
-                  </Button>
-                </Box>
-              </Grid>
-
-              {!currentAccount && (
-                <button className="waveButton" onClick={connectWallet}>
-                  Connect Wallet
-                </button>
+              {currentAccount && (
+                <TextField
+                  label="Send me a message!"
+                  variant="outlined"
+                  disabled={disabledWaving || miningWave}
+                  value={message}
+                  onChange={handleMessageChange}
+                  InputProps={{
+                    inputProps: {
+                      style: { justifyContent: "center", width: "100%" },
+                    },
+                  }}
+                />
               )}
 
-              <Grid container justifyContent="flex-end">
-                <div className="totalWaves">Total Waves: {totalWaves}</div>
-              </Grid>
+              {currentAccount && (
+                <Grid container justifyContent="center">
+                  <Box sx={{ p: 2 }}>
+                    <Button variant="contained" onClick={wave} disabled={disabledWaving || miningWave}>
+                      Wave at Me
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
+
+              {!currentAccount && (
+                <Grid container justifyContent="center">
+                  <Box sx={{ p: 2 }}>
+                    <Button variant="contained" onClick={connectWallet}>
+                      Connect Wallet
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
+
+              {currentAccount && (
+                <Grid container justifyContent="flex-end">
+                  <div className="totalWaves">Total Waves: {totalWaves}</div>
+                </Grid>
+              )}
 
               {miningWave && (
                 <Grid container justifyContent="center">

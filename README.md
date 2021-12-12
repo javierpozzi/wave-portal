@@ -6,4 +6,4 @@ Made with Solidity, Hardhat and React.
 
 Based on "Build a Web3 App with Solidity + Ethereum Smart Contracts" of [buildspace](https://buildspace.so/)
 
-Demo: https://wave-portal-theta.vercel.app/
+Demo (Rinkeby Network): https://wave-portal-theta.vercel.app/
