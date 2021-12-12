@@ -20,7 +20,14 @@
 
 .bio {
   text-align: center;
-  color: gray;
+  margin-top: 16px;
+}
+
+.messageInput {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   margin-top: 16px;
 }
 
@@ -30,5 +37,5 @@
   padding: 8px;
   border: 0;
   border-radius: 5px;
-  
+  width: 300px;
 }

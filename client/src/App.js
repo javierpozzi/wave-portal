@@ -1,15 +1,35 @@
-import React, { useEffect, useState } from "react";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import CssBaseline from "@mui/material/CssBaseline";
+import Grid from "@mui/material/Grid";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemAvatar from "@mui/material/ListItemAvatar";
+import ListItemText from "@mui/material/ListItemText";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import TextField from "@mui/material/TextField";
 import { ethers } from "ethers";
-import wavePortalArtifact from "./artifacts/WavePortal.json";
+import React, { useEffect, useState } from "react";
 import "./App.css";
+import wavePortalArtifact from "./artifacts/WavePortal.json";
 
 export default function App() {
   const contractAddress = "0x794f1410381dCd19CA060EfFE21b2A61D485898D";
   const { ethereum } = window;
   const [currentAccount, setCurrentAccount] = useState("");
+  const [message, setMessage] = useState("");
+  const [disabledWaving, setDisabledWaving] = useState(false);
+  const [miningWave, setMiningWave] = useState(false);
   const [totalWaves, setTotalWaves] = useState(null);
   const [allWaves, setAllWaves] = useState([]);
 
+  const theme = createTheme({
+    palette: {
+      mode: "dark",
+    },
+  });
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -20,9 +40,6 @@ export default function App() {
         console.log("We have the ethereum object", ethereum);
       }
 
-      /*
-       * Check if we're authorized to access the user's wallet
-       */
       const accounts = await ethereum.request({ method: "eth_accounts" });
 
       if (accounts.length !== 0) {
@@ -65,24 +82,25 @@ export default function App() {
         const wavePortalContract = new ethers.Contract(contractAddress, wavePortalArtifact.abi, signer);
 
         const waves = await wavePortalContract.getAllWaves();
-        
-        let wavesCleaned = [];
-        waves.forEach(wave => {
-          wavesCleaned.push({
+
+        const reversedWaves = [...waves].reverse();
+
+        const formattedWaves = reversedWaves.map((wave) => {
+          return {
             address: wave.waver,
             timestamp: new Date(wave.timestamp * 1000),
-            message: wave.message
-          });
+            message: wave.message,
+          };
         });
 
-        setAllWaves(wavesCleaned);
+        setAllWaves(formattedWaves);
       } else {
-        console.log("Ethereum object doesn't exist!")
+        console.log("Ethereum object doesn't exist!");
       }
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   const getTotalWaves = async () => {
     try {
@@ -103,23 +121,32 @@ export default function App() {
         const signer = provider.getSigner();
         const wavePortalContract = new ethers.Contract(contractAddress, wavePortalArtifact.abi, signer);
 
-        let count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
-
-        const waveTxn = await wavePortalContract.wave("Hi!!!");
+        setDisabledWaving(true);
+        const waveTxn = await wavePortalContract.wave(message);
         console.log("Mining...", waveTxn.hash);
+        setMiningWave(true);
 
         await waveTxn.wait();
         console.log("Mined -- ", waveTxn.hash);
+        setMiningWave(false);
+        setDisabledWaving(false);
 
-        count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
+        setMessage("");
+
+        getAllWaves();
+        getTotalWaves();
       } else {
         console.log("Ethereum object doesn't exist!");
       }
     } catch (error) {
       console.log(error);
+      setMiningWave(false);
+      setDisabledWaving(false);
     }
+  };
+
+  const handleMessageChange = (event) => {
+    setMessage(event.target.value);
   };
 
   useEffect(() => {
@@ -127,38 +154,90 @@ export default function App() {
   }, []);
 
   return (
-    <div className="mainContainer">
-      <div className="dataContainer">
-        <div className="header">
-          <span role="img" aria-label="Wave">
-            👋
-          </span>
-          Hey there!
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div className="App">
+        <header className="App-header">
+          <Box sx={{ p: 2 }}>
+            <h1>Wave Portal</h1>
+          </Box>
+        </header>
+        <div className="App-body">
+          <div className="mainContainer">
+            <div className="dataContainer">
+              <div className="header">
+                <span role="img" aria-label="Wave">
+                  👋
+                </span>
+                Hey there!
+              </div>
+
+              <Box sx={{ p: 2 }}>
+                <div className="bio">
+                  I am Javier Pozzi! Connect your Ethereum wallet and wave at me! You could win some ether!
+                </div>
+              </Box>
+
+              <TextField
+                label="Send me a message!"
+                variant="outlined"
+                disabled={disabledWaving || miningWave}
+                value={message}
+                onChange={handleMessageChange}
+                InputProps={{
+                  inputProps: {
+                    style: { justifyContent: "center", width: "100%" },
+                  },
+                }}
+              />
+
+              <Grid container justifyContent="center">
+                <Box sx={{ p: 2 }}>
+                  <Button variant="contained" onClick={wave} disabled={disabledWaving || miningWave}>
+                    Wave at Me
+                  </Button>
+                </Box>
+              </Grid>
+
+              {!currentAccount && (
+                <button className="waveButton" onClick={connectWallet}>
+                  Connect Wallet
+                </button>
+              )}
+
+              <Grid container justifyContent="flex-end">
+                <div className="totalWaves">Total Waves: {totalWaves}</div>
+              </Grid>
+
+              {miningWave && (
+                <Grid container justifyContent="center">
+                  <Box sx={{ display: "flex", p: 2 }}>
+                    <CircularProgress />
+                  </Box>
+                </Grid>
+              )}
+
+              <List>
+                {allWaves.map((wave, index) => {
+                  return (
+                    <ListItem key={index}>
+                      <ListItemAvatar>
+                        <Avatar></Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={wave.address}
+                        secondary={`${
+                          wave.message
+                        } - ${wave.timestamp.toLocaleDateString()} ${wave.timestamp.toLocaleTimeString()}`}
+                      />
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </div>
+          </div>
         </div>
-
-        <div className="bio">
-          I am Javier Pozzi! Connect your Ethereum wallet and wave at me! You could win some ether!
-        </div>
-
-        <div className="totalWaves">Total Waves: {totalWaves}</div>
-
-        <button className="waveButton" onClick={wave}>
-          Wave at Me
-        </button>
-        {!currentAccount && (
-          <button className="waveButton" onClick={connectWallet}>
-            Connect Wallet
-          </button>
-        )}
-        {allWaves.map((wave, index) => {
-          return (
-            <div key={index} style={{ backgroundColor: "OldLace", marginTop: "16px", padding: "8px" }}>
-              <div>Address: {wave.address}</div>
-              <div>Time: {wave.timestamp.toString()}</div>
-              <div>Message: {wave.message}</div>
-            </div>)
-        })}
       </div>
-    </div>
+    </ThemeProvider>
   );
 }
