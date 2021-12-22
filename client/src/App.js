@@ -19,8 +19,9 @@ import wavePortalArtifact from "./artifacts-json/WavePortal.json";
 
 export default function App() {
   const contractAddress = "0x699F31453abf3443c321FD88a32a9349d23C3d44";
+  const rinkebyChainId = 4;
   const { ethereum } = window;
-  const [currentAccount, setCurrentAccount] = useState("");
+  const [currentAccount, setCurrentAccount] = useState(null);
   const [totalWaves, setTotalWaves] = useState(null);
   const [allWaves, setAllWaves] = useState([]);
   const [message, setMessage] = useState("");
@@ -29,6 +30,7 @@ export default function App() {
   const [prizeSnackbarOpen, setPrizeSnackbarOpen] = useState(false);
   const [prizeEarned, setPrizeEarned] = useState(null);
   const [errorSnackbarOpen, setErrorSnackbarOpen] = useState(false);
+  const [currentNetworkIsRinkeby, setCurrentNetworkIsRinkeby] = useState(false);
 
   const theme = createTheme({
     palette: {
@@ -50,13 +52,39 @@ export default function App() {
       if (accounts.length !== 0) {
         const account = accounts[0];
         console.log("Found an authorized account:", account);
-        // TODO: Check if Rinkeby network is selected
         setCurrentAccount(account);
         getAllWaves();
         getTotalWaves();
       } else {
         console.log("No authorized account found");
       }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const listenToNetworkChange = async () => {
+    try {
+      if (!ethereum) {
+        console.log("Make sure you have metamask!");
+        return;
+      } else {
+        console.log("We have the ethereum object", ethereum);
+      }
+
+      // The "any" network will allow spontaneous network changes
+      const provider = new ethers.providers.Web3Provider(ethereum, "any");
+      provider.on("network", (newNetwork, oldNetwork) => {
+        setCurrentNetworkIsRinkeby(newNetwork.chainId === rinkebyChainId);
+
+        // When a Provider makes its initial connection, it emits a "network"
+        // event with a null oldNetwork along with the newNetwork. So, if the
+        // oldNetwork exists, it represents a changing network.
+        if (oldNetwork && newNetwork.chainId === rinkebyChainId && oldNetwork.chainId !== newNetwork.chainId) {
+          // The best practice when a network change occurs is to simply refresh the page.
+          window.location.reload();
+        }
+      });
     } catch (error) {
       console.log(error);
     }
@@ -173,6 +201,24 @@ export default function App() {
     setPrizeSnackbarOpen(true);
   };
 
+  const handleMessageChange = (event) => {
+    setMessage(event.target.value);
+  };
+
+  const handlePrizeSnackbarClose = (_, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setPrizeSnackbarOpen(false);
+  };
+
+  const handleErrorSnackbarClose = (_, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setErrorSnackbarOpen(false);
+  };
+
   useEffect(() => {
     let wavePortalContract;
 
@@ -193,26 +239,9 @@ export default function App() {
     };
   }, []);
 
-  const handleMessageChange = (event) => {
-    setMessage(event.target.value);
-  };
-
-  const handlePrizeSnackbarClose = (_, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setPrizeSnackbarOpen(false);
-  };
-
-  const handleErrorSnackbarClose = (_, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setErrorSnackbarOpen(false);
-  };
-
   useEffect(() => {
     checkIfWalletIsConnected();
+    listenToNetworkChange();
   }, []);
 
   // TODO: Add buildspace clarification
@@ -252,7 +281,13 @@ export default function App() {
                 </div>
               </Box>
 
-              {currentAccount && (
+              {currentAccount && !currentNetworkIsRinkeby && (
+                <Box sx={{ p: 2 }}>
+                  <div className="bio">Please switch to the Rinkeby testnet to use the dApp.</div>
+                </Box>
+              )}
+
+              {currentAccount && currentNetworkIsRinkeby && (
                 <TextField
                   label="Send me a message!"
                   variant="outlined"
@@ -267,7 +302,7 @@ export default function App() {
                 />
               )}
 
-              {currentAccount && (
+              {currentAccount && currentNetworkIsRinkeby && (
                 <Grid container justifyContent="center">
                   <Box sx={{ p: 2 }}>
                     <Button variant="contained" onClick={wave} disabled={disabledWaving || miningWave}>
@@ -277,7 +312,7 @@ export default function App() {
                 </Grid>
               )}
 
-              {!currentAccount && (
+              {!currentAccount && currentNetworkIsRinkeby && (
                 <Grid container justifyContent="center">
                   <Box sx={{ p: 2 }}>
                     <Button variant="contained" onClick={connectWallet}>
@@ -287,7 +322,7 @@ export default function App() {
                 </Grid>
               )}
 
-              {currentAccount && (
+              {currentAccount && currentNetworkIsRinkeby && (
                 <Grid container justifyContent="flex-end">
                   <div className="totalWaves">Total Waves: {totalWaves}</div>
                 </Grid>
