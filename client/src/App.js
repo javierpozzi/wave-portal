@@ -1,7 +1,10 @@
+import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActions from "@mui/material/CardActions";
+import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import CssBaseline from "@mui/material/CssBaseline";
 import Grid from "@mui/material/Grid";
@@ -10,14 +13,18 @@ import ListItem from "@mui/material/ListItem";
 import ListItemAvatar from "@mui/material/ListItemAvatar";
 import ListItemText from "@mui/material/ListItemText";
 import Snackbar from "@mui/material/Snackbar";
+import Stack from "@mui/material/Stack";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { ethers } from "ethers";
-import React, { useEffect, useState } from "react";
+import * as React from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import wavePortalArtifact from "./artifacts-json/WavePortal.json";
 
 export default function App() {
+  // TODO: Refactor contractAddress and chainId with .env
   const contractAddress = "0x699F31453abf3443c321FD88a32a9349d23C3d44";
   const rinkebyChainId = 4;
   const { ethereum } = window;
@@ -246,6 +253,7 @@ export default function App() {
 
   // TODO: Add buildspace clarification
   // TODO: Mobile view
+  // TODO: Use http://identicon.net/ for avatar with address
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -344,15 +352,42 @@ export default function App() {
                         <Avatar></Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                        primary={wave.address}
+                        primary={wave.message}
                         secondary={`${
-                          wave.message
+                          wave.address
                         } - ${wave.timestamp.toLocaleDateString()} ${wave.timestamp.toLocaleTimeString()}`}
                       />
                     </ListItem>
                   );
                 })}
               </List>
+              <Card sx={{ minWidth: 275 }}>
+                <CardContent>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <img
+                      class="buildspaceLogo"
+                      src="https://api.typedream.com/v0/document/public/f71c1437-09d6-45e9-a6e8-3f18592cc3ef_image-removebg-preview_1_png.png"
+                    />
+                    <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
+                      buildspace
+                    </Typography>
+                  </Stack>
+                  <Typography sx={{ mt: 1.5 }} variant="body2">
+                    This dApp is part of the project "Build a Web3 App with Solidity + Ethereum Smart Contracts" of
+                    buildspace
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      window.location.href = "https://buildspace.so/";
+                    }}
+                  >
+                    Learn More
+                  </Button>
+                </CardActions>
+              </Card>
             </div>
           </div>
         </div>
