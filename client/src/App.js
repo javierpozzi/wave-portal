@@ -20,6 +20,7 @@ import Typography from "@mui/material/Typography";
 import { ethers } from "ethers";
 import * as React from "react";
 import { useEffect, useState } from "react";
+import Identicon from "react-identicons";
 import "./App.css";
 import wavePortalArtifact from "./artifacts-json/WavePortal.json";
 
@@ -253,7 +254,6 @@ export default function App() {
 
   // TODO: Add buildspace clarification
   // TODO: Mobile view
-  // TODO: Use http://identicon.net/ for avatar with address
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -349,7 +349,7 @@ export default function App() {
                   return (
                     <ListItem key={index}>
                       <ListItemAvatar>
-                        <Avatar></Avatar>
+                        <Identicon string={wave.address} size="30" />
                       </ListItemAvatar>
                       <ListItemText
                         primary={wave.message}
