@@ -209,6 +209,10 @@ export default function App() {
     setPrizeSnackbarOpen(true);
   };
 
+  const truncateAddress = (address) => {
+    return address.substring(0, 6) + "..." + address.substring(address.length - 4);
+  };
+
   const handleMessageChange = (event) => {
     setMessage(event.target.value);
   };
@@ -252,8 +256,6 @@ export default function App() {
     listenToNetworkChange();
   }, []);
 
-  // TODO: Add buildspace clarification
-  // TODO: Mobile view
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -354,14 +356,14 @@ export default function App() {
                       <ListItemText
                         primary={wave.message}
                         secondary={`${
-                          wave.address
+                          truncateAddress(wave.address)
                         } - ${wave.timestamp.toLocaleDateString()} ${wave.timestamp.toLocaleTimeString()}`}
                       />
                     </ListItem>
                   );
                 })}
               </List>
-              <Card sx={{ minWidth: 275 }}>
+              <Card sx={{ minWidth: 275, my: 5 }}>
                 <CardContent>
                   <Stack direction="row" spacing={2} alignItems="center">
                     <img

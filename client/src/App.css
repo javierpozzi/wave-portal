@@ -9,6 +9,7 @@
   flex-direction: column;
   justify-content: center;
   max-width: 600px;
+  padding: 20px;
 }
 
 .header {
@@ -28,15 +29,6 @@
   justify-content: center;
   align-items: center;
   margin-top: 16px;
-}
-
-.waveButton {
-  cursor: pointer;
-  margin-top: 16px;
-  padding: 8px;
-  border: 0;
-  border-radius: 5px;
-  width: 300px;
 }
 
 .buildspaceLogo {
