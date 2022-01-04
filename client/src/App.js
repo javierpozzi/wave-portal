@@ -25,7 +25,6 @@ import "./App.css";
 import wavePortalArtifact from "./artifacts-json/WavePortal.json";
 
 export default function App() {
-  // TODO: Refactor contractAddress and chainId with .env
   const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
   const networkChainId = parseInt(process.env.REACT_APP_NETWORK_CHAIN_ID);
   const networkName = process.env.REACT_APP_NETWORK_NAME;
@@ -116,7 +115,7 @@ export default function App() {
 
   const connectWallet = async () => {
     try {
-      const accounts = await provider.send("eth_requestAccounts", []);
+      const accounts = ethereum.request({ method: "eth_requestAccounts" });
       setCurrentAccount(accounts[0]);
     } catch (error) {
       console.log(error);
