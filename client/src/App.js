@@ -26,14 +26,15 @@ import wavePortalArtifact from "./artifacts-json/WavePortal.json";
 
 export default function App() {
   // TODO: Refactor contractAddress and chainId with .env
-  const contractAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82";
-  const rinkebyChainId = 31337;
+  const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+  const networkChainId = parseInt(process.env.REACT_APP_NETWORK_CHAIN_ID);
+  const networkName = process.env.REACT_APP_NETWORK_NAME;
   const { ethereum } = window;
   const provider = new ethers.providers.Web3Provider(ethereum);
 
   const [hasWallet, setHasWallet] = useState(null);
   const [currentAccount, setCurrentAccount] = useState(null);
-  const [currentNetworkIsRinkeby, setCurrentNetworkIsRinkeby] = useState(null);
+  const [currentNetworkIsValid, setCurrentNetworkIsValid] = useState(null);
   const [totalWaves, setTotalWaves] = useState(null);
   const [allWaves, setAllWaves] = useState([]);
   const [message, setMessage] = useState("");
@@ -86,7 +87,7 @@ export default function App() {
       // The "any" network will allow spontaneous network changes
       const providerAnyNetwork = new ethers.providers.Web3Provider(ethereum, "any");
       providerAnyNetwork.on("network", (newNetwork, oldNetwork) => {
-        setCurrentNetworkIsRinkeby(newNetwork.chainId === rinkebyChainId);
+        setCurrentNetworkIsValid(newNetwork.chainId === networkChainId);
 
         // When a Provider makes its initial connection, it emits a "network"
         // event with a null oldNetwork along with the newNetwork. So, if the
@@ -279,18 +280,18 @@ export default function App() {
                 </Card>
               )}
 
-              {currentAccount && currentNetworkIsRinkeby === false && (
+              {currentAccount && currentNetworkIsValid === false && (
                 <Card sx={{ minWidth: 275, my: 5 }}>
                   <CardContent sx={{ backgroundColor: "red" }}>
                     <Typography sx={{ mt: 1.5, textAlign: "center" }} variant="body2">
-                      Please switch to the Rinkeby testnet to use Wave Portal.
+                      Please switch to {networkName} network to use Wave Portal.
                     </Typography>
                   </CardContent>
                 </Card>
               )}
 
               {currentAccount &&
-                currentNetworkIsRinkeby && [
+                currentNetworkIsValid && [
                   <TextField
                     key="messageField"
                     label="Send me a message!"
@@ -330,7 +331,7 @@ export default function App() {
                 </Grid>
               )}
 
-              {currentAccount && currentNetworkIsRinkeby && (
+              {currentAccount && currentNetworkIsValid && (
                 <Grid container justifyContent="flex-end">
                   <div className="totalWaves">Total Waves: {totalWaves}</div>
                 </Grid>
